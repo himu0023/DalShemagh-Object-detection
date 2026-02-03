@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+
+# Dataset
+data/
+
+# Model weights
+models/
+runs/
+
+# Outputs
+outputs/
+
+# Cache
+__pycache__/
+*.pyc
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
