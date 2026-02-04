@@ -1,136 +1,156 @@
-import os 
+import os
 import shutil
 from sklearn.model_selection import train_test_split
 
 
+# ==============================
+# STEP 0: PATH CONFIGURATION
+# ==============================
 
-# ---- PATH CONFIGURATION ----
+RAW_DIR = "data/raw/dal_shemagh"
 
-RAW_DATA_DIR = "../data/raw/dal_shemagh"
-PROCESSED_DATA_DIR = "../data"
+RAW_IMAGES_DIR = os.path.join(RAW_DIR, "images/train")
+RAW_LABELS_DIR = os.path.join(RAW_DIR, "labels/train")
 
-RAW_IMAGE_DIR = os.path.join(RAW_DATA_DIR, "images")
-RAW_LABEL_DIR = os.path.join(RAW_DATA_DIR, "labels")
+OUT_DIR = "data"
 
-TRAIN_IMAGE_DIR = os.path.join(PROCESSED_DATA_DIR, "train/images")
-TRAIN_LABEL_DIR = os.path.join(PROCESSED_DATA_DIR, "train/labels")
+TRAIN_IMAGES_DIR = os.path.join(OUT_DIR, "train/images")
+TRAIN_LABELS_DIR = os.path.join(OUT_DIR, "train/labels")
 
-VAL_IMAGE_DIR = os.path.join(PROCESSED_DATA_DIR, "val/images")
-VAL_LABEL_DIR = os.path.join(PROCESSED_DATA_DIR, "val/labels")
-
-
-
-# ---- UTILITY FUNCTIONS ----
-
-def create_directory_structure():
-    """
-    Creates required folder structure for YOLO training.
-
-    YOLO expects:
-    data/train/images
-    data/train/labels
-    data/val/images
-    data/val/labels
-    """
-
-    os.makedirs(TRAIN_IMAGE_DIR, exist_ok=True)
-    os.makedirs(TRAIN_LABEL_DIR, exist_ok=True)
-
-    os.makedirs(VAL_IMAGE_DIR, exist_ok=True)
-    os.makedirs(VAL_LABEL_DIR, exist_ok=True)
+VAL_IMAGES_DIR = os.path.join(OUT_DIR, "val/images")
+VAL_LABELS_DIR = os.path.join(OUT_DIR, "val/labels")
 
 
-def validate_raw_dataset():
-    """
-    Checks whether the raw dataset folder exists 
-    and contains expected subfolders.
+# ==============================
+# STEP 1: VALIDATE DATASET
+# ==============================
 
-    This avoids silent crashes later.
-    """
+def validate_structure():
 
-    if not os.path.exists(RAW_DATA_DIR):
-        raise FileNotFoundError("Raw dataset folder not found!")
-    
-    if not os.path.exists(RAW_IMAGE_DIR):
-        raise FileNotFoundError("Raw images folder missing!")
-    
-    if not os.path.exists(RAW_LABEL_DIR):
-        raise FileNotFoundError("Raw labels folder missing!")
-    
+    print("\n[STEP 1] Validating dataset structure...")
 
-def collect_image_files():
-    """
-    Collects all valid image filenames from raw dataset.
+    if not os.path.exists(RAW_IMAGES_DIR):
+        raise FileNotFoundError("Missing images/train folder")
 
-    Returns:
-        List of images filename (not full paths)
-    """
+    if not os.path.exists(RAW_LABELS_DIR):
+        raise FileNotFoundError("Missing labels/train folder")
 
-    valid_extensions = (".jpg", ".jpeg", ".png")
-
-    image_files = []
-
-    for file_name in os.listdir(RAW_IMAGE_DIR):
-        if file_name.lower().endswith(valid_extensions):
-            image_files.append(file_name)
-
-    if len(image_files) == 0:
-        raise RuntimeError("No images found in raw dataset!")
-    
-    return image_files
+    print("✓ Raw dataset folders found")
 
 
-def split_train_validation(image_list, validation_ratio = 0.2):
-    """
-    Split dataset into training and validationn sets.
+# ==============================
+# STEP 2: CREATE OUTPUT FOLDERS
+# ==============================
 
-    why random_state?
-    ----------------
-    Ensures reproducibility.
-    Same split every time.
-    """
-    
-    train_files, val_files = train_test_split(
-        image_list,
-        test_size=validation_ratio,
-        shuffle=True, 
+def create_output_structure():
+
+    print("\n[STEP 2] Creating output folder structure...")
+
+    os.makedirs(TRAIN_IMAGES_DIR, exist_ok=True)
+    os.makedirs(TRAIN_LABELS_DIR, exist_ok=True)
+
+    os.makedirs(VAL_IMAGES_DIR, exist_ok=True)
+    os.makedirs(VAL_LABELS_DIR, exist_ok=True)
+
+    print("✓ Output folders ready")
+
+
+# ==============================
+# STEP 3: COLLECT IMAGE FILES
+# ==============================
+
+def collect_images():
+
+    print("\n[STEP 3] Collecting image files...")
+
+    valid_ext = (".jpg", ".jpeg", ".png")
+
+    images = [
+        f for f in os.listdir(RAW_IMAGES_DIR)
+        if f.lower().endswith(valid_ext)
+    ]
+
+    if len(images) == 0:
+        raise RuntimeError("No images found")
+
+    print("✓ Found", len(images), "training images")
+
+    return images
+
+
+# ==============================
+# STEP 4: SPLIT DATASET
+# ==============================
+
+def split_dataset(images):
+
+    print("\n[STEP 4] Splitting dataset (80% train / 20% val)...")
+
+    train_imgs, val_imgs = train_test_split(
+        images,
+        test_size=0.2,
+        shuffle=True,
         random_state=42
     )
 
-    return train_files, val_files
+    print("✓ Train images:", len(train_imgs))
+    print("✓ Val images:", len(val_imgs))
+
+    return train_imgs, val_imgs
 
 
+# ==============================
+# STEP 5: COPY FILES
+# ==============================
 
-def copy_image_label_pairs(file_list, target_image_dir, target_label_dir):
-    """
-    Copies image files and their corresponding YOLO label files.
+def copy_data(files, target_img_dir, target_lbl_dir, label=""):
 
-    If label file does not exist:
-    - Image will still be copied 
-    - Label will be skiped
+    print(f"\n[STEP 5] Copying {label} data...")
 
-    This avoids breaking traning when some images
-    contain no objects.
-    """
+    img_count = 0
+    lbl_count = 0
 
-    copied_images = 0
-    copied_labels = 0
+    for name in files:
 
-    for file_name in file_list:
+        src_img = os.path.join(RAW_IMAGES_DIR, name)
+        dst_img = os.path.join(target_img_dir, name)
 
-        image_src_path = os.path.join(RAW_IMAGE_DIR, file_name)
-        image_dst_path = os.path.join(target_label_dir, file_name)
+        shutil.copy2(src_img, dst_img)
+        img_count += 1
+
+        label_name = os.path.splitext(name)[0] + ".txt"
+        src_lbl = os.path.join(RAW_LABELS_DIR, label_name)
+        dst_lbl = os.path.join(target_lbl_dir, label_name)
+
+        if os.path.exists(src_lbl):
+            shutil.copy2(src_lbl, dst_lbl)
+            lbl_count += 1
+
+    print(f"✓ Copied {img_count} images and {lbl_count} labels")
+
+    return img_count, lbl_count
 
 
-        label_name = file_name.rsplit(".", 1)[0] + ".txt"
-        label_src_path = os.path.join(RAW_LABEL_DIR, label_name)
-        label_dst_path = os.path.join(target_label_dir, label_name)
+# ==============================
+# MAIN PIPELINE
+# ==============================
 
-        shutil.copy(image_src_path, image_dst_path)
-        copied_images+=1
+def main():
 
-        if os.path.exists(label_src_path):
-            shutil.copy(label_src_path, label_dst_path)
-            copied_labels+=1
+    print("\n========== DATASET PIPELINE STARTED ==========\n")
 
-    return copied_images, copied_labels
+    validate_structure()
+    create_output_structure()
+
+    images = collect_images()
+
+    train_imgs, val_imgs = split_dataset(images)
+
+    copy_data(train_imgs, TRAIN_IMAGES_DIR, TRAIN_LABELS_DIR, "TRAIN")
+    copy_data(val_imgs, VAL_IMAGES_DIR, VAL_LABELS_DIR, "VALIDATION")
+
+    print("\n========== DATASET PIPELINE FINISHED ==========\n")
+
+
+if __name__ == "__main__":
+    main()

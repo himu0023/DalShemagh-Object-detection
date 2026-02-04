@@ -1,0 +1,16 @@
+# ---- Dal Shemagh Detection Dataset ----
+
+# Root dataset directory(relative to train.py location)
+path: E:/ShemaghProject/data
+
+# Training and validation image directories
+train: train/images
+val: val/images
+
+# Number of object classes
+nc: 2
+
+# Class names (index must match label encoding)
+names:
+  0: head
+  1: shemagh
