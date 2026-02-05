@@ -45,7 +45,7 @@ def train():
     results = model.train(
         data = DATA_YAML,
         epochs = EPOCHS,
-        imgzs = IMG_SIZE,
+        imgsz = IMG_SIZE,
         batch = BATCH_SIZE,
         workers = WORKERS,
         device = DEVICE,
