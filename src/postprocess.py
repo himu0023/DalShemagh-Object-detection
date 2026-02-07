@@ -8,8 +8,8 @@ RAW_PREDICTIONS_PATH = "outputs/predictions/raw_predictions.json"
 POSTPROCESSED_PATH = "outputs/predictions/postprocessed.json"
 
 # Geometry thresholds (tunable)
-IOU_THRESHOLD = 0.15    # overlap requiremet 
-CONF_THRESHOLD = 0.25    # ignore weak detections
+IOU_THRESHOLD = 0.2      # overlap requiremet 
+CONF_THRESHOLD = 0.10    # ignore weak detections
 
 
 # --------- GEMOTRAY UTILITES ---------
@@ -103,7 +103,12 @@ def decide_right_place(detections: List[Dict])->int:
 
             iou = box_iou(head_box, sh_box)
 
-            if iou >= IOU_THRESHOLD and center_inside(sh_box, head_box):
+            # Priority 1: shemagh center inside head
+            if center_inside(sh_box, head_box):
+                return 1
+            
+            # Priority 2 : any overlap at all
+            if box_iou(sh_box, head_box)>0:
                 return 1
             
     return 0

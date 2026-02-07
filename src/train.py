@@ -10,13 +10,13 @@ from ultralytics import YOLO
 DATA_YAML = "configs/shemagh.yaml"
 
 # Pretrained YOLOv8 model
-MODEL_NAME = "yolov8n.pt" # nano model (fast + fits RTX 3050)
+MODEL_NAME = "yolov8s.pt" # nano model (fast + fits RTX 3050)
 
 # Output directory for trained models
 OUTPUT_DIR = "models"
 
 # Training hyperparameters 
-EPOCHS = 50         # Increase later (start with 30-50)
+EPOCHS = 80         # Increase later (start with 30-50)
 IMG_SIZE = 640
 BATCH_SIZE = 8      # Safe for RTX 3050 6GB
 WORKERS = 2         # Prevent Windows memory crash
